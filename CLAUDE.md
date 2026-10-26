@@ -15,18 +15,16 @@
 
 ## Connecting to AWS (no secrets stored here)
 The owner approves the SSO login from their phone. The approval lasts only for the session, so start the
-device-code login, give the owner the link and wait.
-- AWS CLI v2 is required (`pip install awscli` gives v1, which cannot do `sso login`). Install from
-  https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip into a scratch dir.
-- Add to ~/.aws/config:
-  - `[sso-session capsa]` sso_start_url = https://capsa.awsapps.com/start, sso_region = us-east-1,
-    sso_registration_scopes = sso:account:access
-  - profiles `dev`, `qa`, `prod`: sso_session = capsa, sso_role_name = CapsaAWSDevelopersEDM-UserAccess,
-    region = us-east-1, with sso_account_id: dev 110611798842, qa 491087500610, prod 698772346265
-- Run: `aws sso login --sso-session capsa --no-browser --use-device-code`
-- Run aws with `env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY ...`; the placeholder keys in the
-  environment override the profile and cause InvalidClientTokenId.
+device-code login, give the owner the link and wait. Everything else is scripted:
+1. Run `aws-tools/bootstrap-aws.sh` (installs AWS CLI v2 into `~/.local/aws-cli-v2` and writes the `capsa`
+   sso-session plus `dev`, `qa`, `prod` profiles; safe to re-run). `pip install awscli` gives v1, which cannot do `sso login`.
+2. Run `~/.local/aws-cli-v2/bin/aws sso login --sso-session capsa --no-browser --use-device-code`, send the
+   owner the verification link and wait for their approval.
+3. Run aws with `env -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY ... --profile dev|qa|prod`; the placeholder
+   keys in the environment override the profile and cause InvalidClientTokenId.
+- Account IDs: dev 110611798842, qa 491087500610, prod 698772346265; role CapsaAWSDevelopersEDM-UserAccess; SSO https://capsa.awsapps.com/start (us-east-1).
 - When the owner says "connect to dev/QA/prod", use the matching profile without asking again.
+- Optional: the owner can put `bash aws-tools/bootstrap-aws.sh` in the environment's Setup script so step 1 runs automatically.
 
 ## Redshift (dev)
 - Cluster `capsa-edm-dev`, region us-east-2, database `dev`. Schemas: gold_insight, silver_insight, report_insight.
@@ -43,3 +41,9 @@ device-code login, give the owner the link and wait.
 - Never put secrets in it: no passwords, keys, tokens or secret values. Names, ARNs and account IDs are fine.
 - Do not remove or rewrite existing entries unless the owner asks. The deletion guardrail above applies to this file too.
 - After saving, tell the owner in one line what was saved.
+
+## Guarded Redshift runner
+Use `aws-tools/rs_safe.sh <iam|etl> "<sql>" [--allow-write]` for all Redshift SQL (dev cluster only). It is
+read-only by default, always refuses DROP/TRUNCATE/DELETE/ALTER/GRANT/REVOKE/VACUUM/UNLOAD/COPY/CALL,
+refuses multiple statements and an UPDATE without WHERE, and never reads the secret value. Destructive SQL
+must only be run by hand after the owner approves that exact statement.
