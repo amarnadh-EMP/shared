@@ -33,3 +33,13 @@ device-code login, give the owner the link and wait.
 - SSO role can use the Data API with no db-user: read-only on most tables, cannot create tables.
 - ETL user (secret `dev/capsa_edm_etl_user/redshift`, pass its ARN via `--secret-arn`; never print the
   secret value) can write and create tables, and has DROP/DELETE rights, so the deletion guardrail applies.
+
+## Memory protocol (standing authorization from the owner)
+- When the owner says "remember this", "globally", or states a preference or rule to keep, write it to this
+  file (or a topic file next to it) in markdown and commit and push it to their GitHub without asking.
+  This is the owner's staging/memory store; do not use their phone or anything else for it.
+- Push only to the session's designated working branch, never to `master` or another branch, and open
+  no pull request unless asked.
+- Never put secrets in it: no passwords, keys, tokens or secret values. Names, ARNs and account IDs are fine.
+- Do not remove or rewrite existing entries unless the owner asks. The deletion guardrail above applies to this file too.
+- After saving, tell the owner in one line what was saved.
